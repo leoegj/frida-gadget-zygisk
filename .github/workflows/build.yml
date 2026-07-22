@@ -42,6 +42,7 @@ jobs:
 
       - name: Package Module
         run: |
+          mkdir -p zygisk/arm64-v8a
           cp build/zygisk/arm64-v8a/zygisk_gadget.so zygisk/arm64-v8a/
           echo '#!/sbin/sh' > customize.sh
           echo 'SKIPUNZIP=0' >> customize.sh

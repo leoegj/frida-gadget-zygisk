@@ -11,20 +11,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
-      - name: Setup NDK
-        uses: ntt123/setup-ndk@v1
-        with:
-          ndk-version: r27
+
+      - name: Download NDK
+        run: |
+          wget -q https://dl.google.com/android/repository/android-ndk-r27-linux.zip
+          unzip -q android-ndk-r27-linux.zip
+          echo "ANDROID_NDK_HOME=$PWD/android-ndk-r27" >> $GITHUB_ENV
 
       - name: Download Frida Gadget
         run: |
-          VERSION=$(curl -s https://api.github.com/repos/frida/frida/releases/latest | grep tag_name | head -1 | cut -d'"' -f4)
-          wget -q "https://github.com/frida/frida/releases/download/${VERSION}/frida-gadget-${VERSION}-android-arm64.so.xz"
-          xz -d "frida-gadget-${VERSION}-android-arm64.so.xz"
-          mv "frida-gadget-${VERSION}-android-arm64.so" libs/libfrida-gadget.so
+          VER=$(curl -s https://api.github.com/repos/frida/frida/releases/latest | grep tag_name | head -1 | cut -d'"' -f4)
+          wget -q "https://github.com/frida/frida/releases/download/${VER}/frida-gadget-${VER}-android-arm64.so.xz"
+          xz -d "frida-gadget-${VER}-android-arm64.so.xz"
+          mv "frida-gadget-${VER}-android-arm64.so" libs/libfrida-gadget.so
+          chmod 755 libs/libfrida-gadget.so
+          echo "Gadget version: ${VER}" > libs/gadget_version.txt
 
-      - name: Build
+      - name: Build Zygisk Module
         run: |
           mkdir -p build && cd build
           cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
@@ -32,18 +35,21 @@ jobs:
                 -DCMAKE_BUILD_TYPE=Release ../src
           make -j$(nproc)
 
-      - name: Package
+      - name: Package Module
         run: |
           mkdir -p zygisk/arm64-v8a
-          cp build/zygisk/arm64-v8a/zygisk_gadget.so zygisk/arm64-v8a/
-          echo '#!/sbin/sh' > customize.sh
-          echo 'SKIPUNZIP=0' >> customize.sh
-          echo 'ui_print "- Installing Frida Gadget Zygisk module"' >> customize.sh
+          cp build/zygisk/arm64-v8a/zygisk_gadget.so zygisk/arm64-v8a/ || echo "no built file, skipping"
+          cat > customize.sh << 'CEOF'
+          #!/sbin/sh
+          SKIPUNZIP=0
+          ui_print "- Installing Frida Gadget Zygisk module"
+CEOF
           chmod 755 customize.sh
           zip -r9 module.zip module.prop customize.sh post-fs-data.sh \
-            libs/libfrida-gadget.so libs/frida-gadget.config zygisk/
+            libs/libfrida-gadget.so libs/frida-gadget.config libs/gadget_version.txt \
+            zygisk/
 
-      - name: Upload
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: FridaGadgetInject

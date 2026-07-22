@@ -10,8 +10,8 @@ add_library(zygisk_gadget SHARED main.cpp)
 # 链接 Android 的 log 库
 target_link_libraries(zygisk_gadget log)
 
-# 设置输出目录为项目根目录下的 zygisk/
+# 设置输出目录为 build/zygisk/
 set_target_properties(zygisk_gadget PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/zygisk/${ANDROID_ABI}"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/zygisk/${ANDROID_ABI}"
     PREFIX ""
 )

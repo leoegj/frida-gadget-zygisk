@@ -7,58 +7,44 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Android NDK
-        run: |
-          # 手动下载 NDK r27
-          wget -q https://dl.google.com/android/repository/android-ndk-r27-linux.zip
-          unzip -q android-ndk-r27-linux.zip
-          echo "ANDROID_NDK_HOME=$PWD/android-ndk-r27" >> $GITHUB_ENV
+        
+      - name: Setup NDK
+        uses: ntt123/setup-ndk@v1
+        with:
+          ndk-version: r27
 
       - name: Download Frida Gadget
         run: |
-          GADGET_VERSION=$(curl -s https://api.github.com/repos/frida/frida/releases/latest | grep tag_name | cut -d'"' -f4)
-          echo "Latest Frida version: $GADGET_VERSION"
-          wget -q "https://github.com/frida/frida/releases/download/${GADGET_VERSION}/frida-gadget-${GADGET_VERSION}-android-arm64.so.xz"
-          xz -d "frida-gadget-${GADGET_VERSION}-android-arm64.so.xz"
-          mv "frida-gadget-${GADGET_VERSION}-android-arm64.so" libs/libfrida-gadget.so
-          chmod 755 libs/libfrida-gadget.so
-          echo "Gadget version: ${GADGET_VERSION}" > libs/gadget_version.txt
+          VERSION=$(curl -s https://api.github.com/repos/frida/frida/releases/latest | grep tag_name | head -1 | cut -d'"' -f4)
+          wget -q "https://github.com/frida/frida/releases/download/${VERSION}/frida-gadget-${VERSION}-android-arm64.so.xz"
+          xz -d "frida-gadget-${VERSION}-android-arm64.so.xz"
+          mv "frida-gadget-${VERSION}-android-arm64.so" libs/libfrida-gadget.so
 
-      - name: Compile Zygisk Module
+      - name: Build
         run: |
           mkdir -p build && cd build
           cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
-                -DANDROID_ABI=arm64-v8a \
-                -DANDROID_PLATFORM=android-21 \
-                -DCMAKE_BUILD_TYPE=Release \
-                ../src
+                -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-21 \
+                -DCMAKE_BUILD_TYPE=Release ../src
           make -j$(nproc)
 
-      - name: Package module
+      - name: Package
         run: |
           mkdir -p zygisk/arm64-v8a
           cp build/zygisk/arm64-v8a/zygisk_gadget.so zygisk/arm64-v8a/
-          cat > customize.sh << 'CEOF'
-          #!/sbin/sh
-          SKIPUNZIP=0
-          ui_print "- Installing Frida Gadget Zygisk module"
-          ui_print "- Gadget version: $(cat $MODPATH/libs/gadget_version.txt 2>/dev/null || echo 'unknown')"
-          ui_print "- Module will inject gadget into Taobao process"
-CEOF
+          echo '#!/sbin/sh' > customize.sh
+          echo 'SKIPUNZIP=0' >> customize.sh
+          echo 'ui_print "- Installing Frida Gadget Zygisk module"' >> customize.sh
           chmod 755 customize.sh
-          MODULE_NAME="FridaGadgetInject-v1.0.zip"
-          zip -r9 "$MODULE_NAME" module.prop customize.sh post-fs-data.sh \
-            libs/libfrida-gadget.so libs/frida-gadget.config libs/gadget_version.txt \
-            zygisk/arm64-v8a/zygisk_gadget.so
-          echo "MODULE_NAME=$MODULE_NAME" >> $GITHUB_ENV
+          zip -r9 module.zip module.prop customize.sh post-fs-data.sh \
+            libs/libfrida-gadget.so libs/frida-gadget.config zygisk/
 
-      - name: Upload artifact
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: FridaGadgetInject
-          path: ${{ env.MODULE_NAME }}
+          path: module.zip

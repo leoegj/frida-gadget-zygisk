@@ -53,10 +53,8 @@ public:
 };
 
 #define REGISTER_ZYGISK_MODULE(module) \
-    extern "C" __attribute__((visibility("default"))) \
-    zygisk::ModuleBase* ZygiskModuleCreate() { return new module(); } \
-    extern "C" __attribute__((visibility("default"))) \
-    void ZygiskModuleDestroy(zygisk::ModuleBase* ptr) { delete ptr; }
+    extern "C" __attribute__((visibility("default"))) __attribute__((used)) \
+    void* zygisk_module_entry() { return new module(); }
 
 } // namespace zygisk
 

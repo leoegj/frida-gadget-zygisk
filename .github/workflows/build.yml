@@ -37,12 +37,12 @@ jobs:
                 -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-21 \
                 -DCMAKE_BUILD_TYPE=Release ../src
           make -j$(nproc)
-          ls -la zygisk_gadget.so
+          find . -name "zygisk_gadget.so" -ls
+          ls -la zygisk/arm64-v8a/zygisk_gadget.so
 
       - name: Package Module
         run: |
-          mkdir -p zygisk/arm64-v8a
-          cp build/zygisk_gadget.so zygisk/arm64-v8a/
+          cp build/zygisk/arm64-v8a/zygisk_gadget.so zygisk/arm64-v8a/
           echo '#!/sbin/sh' > customize.sh
           echo 'SKIPUNZIP=0' >> customize.sh
           echo 'ui_print "- Frida Gadget Zygisk module"' >> customize.sh

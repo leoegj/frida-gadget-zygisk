@@ -3,6 +3,7 @@ name: Build Frida Gadget Zygisk Module
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -10,5 +11,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Test
-        run: echo "build workflow works"
+
+      - name: Test echo
+        run: echo "before NDK"
+
+      - name: Download NDK
+        run: |
+          echo "downloading..."
+          wget -q https://dl.google.com/android/repository/android-ndk-r27-linux.zip
+          echo "NDK file: $(ls -la android-ndk-r27-linux.zip)"
+          unzip -q android-ndk-r27-linux.zip
+          echo "ANDROID_NDK_HOME=$PWD/android-ndk-r27" >> $GITHUB_ENV
+          echo "extracted: $(ls android-ndk-r27/ | head -3)"

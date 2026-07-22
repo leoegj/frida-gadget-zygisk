@@ -12,14 +12,49 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Test echo
-        run: echo "before NDK"
-
       - name: Download NDK
         run: |
-          echo "downloading..."
           wget -q https://dl.google.com/android/repository/android-ndk-r27-linux.zip
-          echo "NDK file: $(ls -la android-ndk-r27-linux.zip)"
           unzip -q android-ndk-r27-linux.zip
           echo "ANDROID_NDK_HOME=$PWD/android-ndk-r27" >> $GITHUB_ENV
-          echo "extracted: $(ls android-ndk-r27/ | head -3)"
+          echo "NDK ready: $ANDROID_NDK_HOME"
+
+      - name: Download Frida Gadget
+        run: |
+          VER=$(curl -s https://api.github.com/repos/frida/frida/releases/latest | grep tag_name | head -1 | cut -d'"' -f4)
+          echo "Gadget version: $VER"
+          wget -q "https://github.com/frida/frida/releases/download/${VER}/frida-gadget-${VER}-android-arm64.so.xz"
+          xz -d "frida-gadget-${VER}-android-arm64.so.xz"
+          mv "frida-gadget-${VER}-android-arm64.so" libs/libfrida-gadget.so
+          chmod 755 libs/libfrida-gadget.so
+          echo "$VER" > libs/gadget_version.txt
+          ls -la libs/libfrida-gadget.so
+
+      - name: Build Zygisk Module
+        run: |
+          cd src
+          mkdir -p ../build && cd ../build
+          cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
+                -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-21 \
+                -DCMAKE_BUILD_TYPE=Release ../src
+          make -j$(nproc)
+          ls -la zygisk_gadget.so
+
+      - name: Package Module
+        run: |
+          mkdir -p zygisk/arm64-v8a
+          cp build/zygisk_gadget.so zygisk/arm64-v8a/
+          echo '#!/sbin/sh' > customize.sh
+          echo 'SKIPUNZIP=0' >> customize.sh
+          echo 'ui_print "- Frida Gadget Zygisk module"' >> customize.sh
+          chmod 755 customize.sh
+          zip -r9 module.zip module.prop customize.sh post-fs-data.sh \
+            libs/libfrida-gadget.so libs/frida-gadget.config libs/gadget_version.txt \
+            zygisk/
+          ls -la module.zip
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FridaGadgetInject
+          path: module.zip

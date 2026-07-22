@@ -62,31 +62,4 @@ public:
 };
 
 // Zygisk 模块入口
-extern "C" __attribute__((visibility("default")))
-zygisk::ModuleBase* ZygiskModuleCreate() {
-    // 尝试从 libnativehelper.so 或 libart.so 动态获取 JNI_GetCreatedJavaVMs
-    if (!g_jvm) {
-        // 尝试 libnativehelper.so
-        void* handle = dlopen("libnativehelper.so", RTLD_NOW);
-        if (!handle) {
-            handle = dlopen("libart.so", RTLD_NOW);
-        }
-        if (handle) {
-            typedef int (*GetCreatedJavaVMs_t)(JavaVM**, jsize, jsize*);
-            auto getVMs = (GetCreatedJavaVMs_t)dlsym(handle, "JNI_GetCreatedJavaVMs");
-            if (getVMs) {
-                jsize count = 0;
-                if (getVMs(&g_jvm, 1, &count) != JNI_OK) {
-                    g_jvm = nullptr;
-                }
-            }
-            // 不关闭 handle，因为 nativehelper 是系统库
-        }
-    }
-    return new FridaGadgetModule();
-}
-
-extern "C" __attribute__((visibility("default")))
-void ZygiskModuleDestroy(zygisk::ModuleBase* ptr) {
-    delete ptr;
-}
+REGISTER_ZYGISK_MODULE(FridaGadgetModule)

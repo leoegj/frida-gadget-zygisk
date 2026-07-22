@@ -1,0 +1,6 @@
+id=frida-gadget-inject
+name=Frida Gadget Inject
+version=v1.0
+versionCode=1
+author=leoegj
+description=Inject Frida Gadget into Taobao process via Zygisk

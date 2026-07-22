@@ -37,7 +37,7 @@ public:
         }
         if (!env) return;
 
-        const char* name = env->GetStringUTFChars(args->nice_name, nullptr);
+        const char* name = env->GetStringUTFChars(*args->nice_name, nullptr);
         if (name) {
             if (strstr(name, "com.taobao.taobao") != nullptr) {
                 // 只在主进程注入，不注入子进程（如 :channel）
@@ -46,7 +46,7 @@ public:
                     inject_gadget();
                 }
             }
-            env->ReleaseStringUTFChars(args->nice_name, name);
+            env->ReleaseStringUTFChars(*args->nice_name, name);
         }
     }
 

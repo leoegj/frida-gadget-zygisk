@@ -79,4 +79,16 @@ public:
     void postServerSpecialize(const zygisk::ServerSpecializeArgs *args) override {}
 };
 
+// 守护伴侣进程 — zygisksu 需要 companion_entry 才能分发 preAppSpecialize 回调
+static void gadget_companion(int socket) {
+    LOGD("companion started, socket=%d", socket);
+    // 保持连接活跃，直到 daemon 关闭
+    char buf[64];
+    while (read(socket, buf, sizeof(buf)) > 0) {
+        // 只是接收心跳，不做特殊处理
+    }
+    LOGD("companion exiting");
+}
+
 REGISTER_ZYGISK_MODULE(FridaGadgetModule)
+REGISTER_ZYGISK_COMPANION(gadget_companion)

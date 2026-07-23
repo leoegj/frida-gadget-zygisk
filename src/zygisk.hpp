@@ -13,7 +13,7 @@ struct ServerSpecializeArgs;
 class ModuleBase {
 public:
     virtual ~ModuleBase() = default;
-    virtual void onLoad(Api *api, JNIEnv *env) {}
+    // NO onLoad — ZygiskNext (zygisksu) API 没有 onLoad 方法
     virtual void preAppSpecialize(AppSpecializeArgs *args) {}
     virtual void postAppSpecialize(const AppSpecializeArgs *args) {}
     virtual void preServerSpecialize(ServerSpecializeArgs *args) {}
@@ -21,30 +21,30 @@ public:
 };
 
 struct AppSpecializeArgs {
-    jint &uid;
-    jint &gid;
-    jintArray &gids;
-    jint &runtime_flags;
-    jint &mount_external;
-    jstring &se_info;
-    jstring &nice_name;
-    jstring &instruction_set;
-    jstring &app_data_dir;
-    jboolean *const is_child_zygote;
-    jboolean *const is_top_app;
-    jobjectArray *const pkg_data_info_list;
-    jobjectArray *const whitelisted_data_info_list;
-    jboolean *const mount_data_dirs;
-    jboolean *const mount_storage_dirs;
+    jint uid;
+    jint pid;
+    jint *gid_arr;
+    jint *runtime_flags;
+    jint &mount_mode;
+    jint &mount_state;
+    jint &permissive;
+    jint *seinfo;
+    jstring *nice_name;
+    jstring *app_data_dir;
+    jstring *seccomp_policy;
+    bool &is_child_zygote;
+    bool &is_top_app;
+    jintArray &bg_category;
 };
 
 struct ServerSpecializeArgs {
-    jint &uid;
-    jint &gid;
-    jintArray &gids;
-    jint &runtime_flags;
-    jlong &permitted_capabilities;
-    jlong &effective_capabilities;
+    jint uid;
+    jint pid;
+    jint *gid_arr;
+    jint *runtime_flags;
+    jint &mount_mode;
+    jint &permissive;
+    jstring *nice_name;
 };
 
 struct Api {

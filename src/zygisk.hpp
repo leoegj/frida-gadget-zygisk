@@ -55,6 +55,10 @@ struct Api {
     extern "C" __attribute__((visibility("default"))) __attribute__((used)) \
     void* zygisk_module_entry() { return new module(); }
 
+#define REGISTER_ZYGISK_COMPANION(handler) \
+    extern "C" __attribute__((visibility("default"))) __attribute__((used)) \
+    void* zygisk_companion_entry() { return (void*)handler; }
+
 } // namespace zygisk
 
 #endif // ZYGISK_API_HPP

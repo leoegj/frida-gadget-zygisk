@@ -11,22 +11,16 @@ struct AppSpecializeArgs {
     jint pid;
     jint *gid_arr;
     jint *runtime_flags;
-    jint *mount_mode;
-    jint *mount_state;
-    jint *permissive;
+    jint &mount_mode;
+    jint &mount_state;
+    jint &permissive;
     jint *seinfo;
-    jstring *process;
     jstring *nice_name;
     jstring *app_data_dir;
     jstring *seccomp_policy;
-    bool *is_child_zygote;
-    bool *is_top_app;
-    jintArray *bg_category;
-    jint *fds_to_ignore;
-    jint *storage_ce_uuid;
-    jint *storage_ce_userid;
-    jint *storage_ce_flags;
-    jint *storage_ce_mnt_flags;
+    bool &is_child_zygote;
+    bool &is_top_app;
+    jintArray &bg_category;
 };
 
 struct ServerSpecializeArgs {
@@ -34,22 +28,19 @@ struct ServerSpecializeArgs {
     jint pid;
     jint *gid_arr;
     jint *runtime_flags;
-    jint *mount_mode;
-    jint *permissive;
-    jstring *process;
+    jint &mount_mode;
+    jint &permissive;
     jstring *nice_name;
-    jstring *seccomp_policy;
 };
 
 class ModuleBase {
 public:
     virtual ~ModuleBase() = default;
-    virtual void onLoad(const zygisk::AppSpecializeArgs* args) {}
-    virtual void preAppSpecialize(const zygisk::AppSpecializeArgs* args) {}
-    virtual void postAppSpecialize(const zygisk::AppSpecializeArgs* args) {}
-    virtual void preServerSpecialize(const zygisk::ServerSpecializeArgs* args) {}
-    virtual void postServerSpecialize(const zygisk::ServerSpecializeArgs* args) {}
-    virtual void onDestroy() {}
+    virtual void onLoad(const AppSpecializeArgs &args) {}
+    virtual void preAppSpecialize(AppSpecializeArgs *args) {}
+    virtual void postAppSpecialize(const AppSpecializeArgs *args) {}
+    virtual void preServerSpecialize(ServerSpecializeArgs *args) {}
+    virtual void postServerSpecialize(const ServerSpecializeArgs *args) {}
 };
 
 #define REGISTER_ZYGISK_MODULE(module) \

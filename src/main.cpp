@@ -7,7 +7,22 @@
 
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, "FridaGadget", __VA_ARGS__)
 
-static JNIEnv* g_env = nullptr;
+static JavaVM* get_jvm() {
+    static JavaVM* jvm = nullptr;
+    if (jvm) return jvm;
+    typedef jint (*GetVMs_t)(JavaVM**, jsize, jsize*);
+    GetVMs_t func = (GetVMs_t)dlsym(RTLD_DEFAULT, "JNI_GetCreatedJavaVMs");
+    if (!func) {
+        void* handle = dlopen("libnativehelper.so", RTLD_NOW);
+        if (handle) func = (GetVMs_t)dlsym(handle, "JNI_GetCreatedJavaVMs");
+    }
+    if (func) {
+        jsize count = 0;
+        func(&jvm, 1, &count);
+        if (count == 0) jvm = nullptr;
+    }
+    return jvm;
+}
 
 static void inject_gadget() {
     void* handle = dlopen("/data/local/tmp/libfrida-gadget.so", RTLD_NOW | RTLD_GLOBAL);
@@ -20,20 +35,28 @@ static void inject_gadget() {
 
 class FridaGadgetModule : public zygisk::ModuleBase {
 public:
-    void onLoad(zygisk::Api *api, JNIEnv *env) override {
-        g_env = env;
-        LOGD("onLoad called, JNI env=%p", env);
-    }
-
     void preAppSpecialize(zygisk::AppSpecializeArgs *args) override {
         LOGD("preAppSpecialize called");
         
-        if (!g_env) {
-            LOGD("g_env is null");
+        if (!args || !args->nice_name) {
+            LOGD("args or nice_name is null");
             return;
         }
-        
-        const char* name = g_env->GetStringUTFChars(args->nice_name, nullptr);
+
+        JavaVM* jvm = get_jvm();
+        if (!jvm) {
+            LOGD("get_jvm failed");
+            return;
+        }
+
+        JNIEnv* env = nullptr;
+        jvm->AttachCurrentThread(&env, nullptr);
+        if (!env) {
+            LOGD("AttachCurrentThread failed");
+            return;
+        }
+
+        const char* name = env->GetStringUTFChars(*args->nice_name, nullptr);
         if (name) {
             LOGD("process name: %s", name);
             if (strstr(name, "com.taobao.taobao") != nullptr) {
@@ -42,15 +65,13 @@ public:
                     inject_gadget();
                 }
             }
-            g_env->ReleaseStringUTFChars(args->nice_name, name);
+            env->ReleaseStringUTFChars(*args->nice_name, name);
         }
     }
 
     void postAppSpecialize(const zygisk::AppSpecializeArgs *args) override {}
-
     void preServerSpecialize(zygisk::ServerSpecializeArgs *args) override {}
     void postServerSpecialize(const zygisk::ServerSpecializeArgs *args) override {}
 };
 
-// Zygisk 模块入口
 REGISTER_ZYGISK_MODULE(FridaGadgetModule)

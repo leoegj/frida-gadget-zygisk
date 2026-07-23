@@ -6,41 +6,49 @@
 
 namespace zygisk {
 
-struct AppSpecializeArgs {
-    jint uid;
-    jint pid;
-    jint *gid_arr;
-    jint *runtime_flags;
-    jint &mount_mode;
-    jint &mount_state;
-    jint &permissive;
-    jint *seinfo;
-    jstring *nice_name;
-    jstring *app_data_dir;
-    jstring *seccomp_policy;
-    bool &is_child_zygote;
-    bool &is_top_app;
-    jintArray &bg_category;
-};
-
-struct ServerSpecializeArgs {
-    jint uid;
-    jint pid;
-    jint *gid_arr;
-    jint *runtime_flags;
-    jint &mount_mode;
-    jint &permissive;
-    jstring *nice_name;
-};
+struct Api;
+struct AppSpecializeArgs;
+struct ServerSpecializeArgs;
 
 class ModuleBase {
 public:
     virtual ~ModuleBase() = default;
-    virtual void onLoad(const AppSpecializeArgs &args) {}
+    virtual void onLoad(Api *api, JNIEnv *env) {}
     virtual void preAppSpecialize(AppSpecializeArgs *args) {}
     virtual void postAppSpecialize(const AppSpecializeArgs *args) {}
     virtual void preServerSpecialize(ServerSpecializeArgs *args) {}
     virtual void postServerSpecialize(const ServerSpecializeArgs *args) {}
+};
+
+struct AppSpecializeArgs {
+    jint &uid;
+    jint &gid;
+    jintArray &gids;
+    jint &runtime_flags;
+    jint &mount_external;
+    jstring &se_info;
+    jstring &nice_name;
+    jstring &instruction_set;
+    jstring &app_data_dir;
+    jboolean *const is_child_zygote;
+    jboolean *const is_top_app;
+    jobjectArray *const pkg_data_info_list;
+    jobjectArray *const whitelisted_data_info_list;
+    jboolean *const mount_data_dirs;
+    jboolean *const mount_storage_dirs;
+};
+
+struct ServerSpecializeArgs {
+    jint &uid;
+    jint &gid;
+    jintArray &gids;
+    jint &runtime_flags;
+    jlong &permitted_capabilities;
+    jlong &effective_capabilities;
+};
+
+struct Api {
+    void *_reserved[8];
 };
 
 #define REGISTER_ZYGISK_MODULE(module) \

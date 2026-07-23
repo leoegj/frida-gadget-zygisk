@@ -45,6 +45,10 @@ public:
         LOGD("FridaGadgetModule constructor");
     }
 
+    void onLoad(const zygisk::AppSpecializeArgs &args) override {
+        LOGD("onLoad called");
+    }
+
     void preAppSpecialize(zygisk::AppSpecializeArgs *args) override {
         LOGD("preAppSpecialize called");
         if (!args) { LOGD("args is null"); return; }

@@ -13,7 +13,7 @@ struct ServerSpecializeArgs;
 class ModuleBase {
 public:
     virtual ~ModuleBase() = default;
-    // NO onLoad — ZygiskNext (zygisksu) API 没有 onLoad 方法
+    virtual void onLoad(const AppSpecializeArgs &args) {}
     virtual void preAppSpecialize(AppSpecializeArgs *args) {}
     virtual void postAppSpecialize(const AppSpecializeArgs *args) {}
     virtual void preServerSpecialize(ServerSpecializeArgs *args) {}
